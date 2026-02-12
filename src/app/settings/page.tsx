@@ -224,32 +224,60 @@ export default function SettingsPage() {
 
                                 <div className="input-group">
                                     <label>Logo Toko</label>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <input
-                                            type="url"
-                                            value={formData.logoUrl}
-                                            onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                                            placeholder="https://example.com/logo.png"
-                                            style={{ flex: 1 }}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="btn-primary"
-                                            style={{ padding: '0 1rem', background: 'rgba(255,255,255,0.05)', borderColor: 'var(--card-border)' }}
-                                            onClick={() => document.getElementById('logo-upload')?.click()}
-                                            disabled={uploading}
+                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                                        {/* Preview Small */}
+                                        <div
+                                            style={{
+                                                width: '80px',
+                                                height: '80px',
+                                                borderRadius: 'var(--radius-md)',
+                                                overflow: 'hidden',
+                                                background: 'rgba(255,255,255,0.05)',
+                                                border: '1px solid var(--card-border)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                flexShrink: 0
+                                            }}
                                         >
-                                            {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
-                                        </button>
+                                            {formData.logoUrl ? (
+                                                <img src={formData.logoUrl} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <Store size={32} color="var(--text-muted)" />
+                                            )}
+                                        </div>
+
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button
+                                                    type="button"
+                                                    className="btn-primary"
+                                                    style={{ background: 'rgba(255,255,255,0.1)', borderColor: 'var(--card-border)', flex: 1 }}
+                                                    onClick={() => document.getElementById('logo-upload')?.click()}
+                                                    disabled={uploading}
+                                                >
+                                                    {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                                                    <span>{uploading ? 'Mengunggah...' : 'Pilih File Logo'}</span>
+                                                </button>
+                                                <input
+                                                    id="logo-upload"
+                                                    type="file"
+                                                    accept="image/*"
+                                                    style={{ display: 'none' }}
+                                                    onChange={handleLogoUpload}
+                                                />
+                                            </div>
+
+                                            <input
+                                                type="url"
+                                                value={formData.logoUrl}
+                                                onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
+                                                placeholder="Atau tempel URL gambar (https://...)"
+                                                style={{ fontSize: '0.85rem' }}
+                                            />
+                                            <span className="input-hint">Format: JPG, PNG, WebP. Maksimal 5MB.</span>
+                                        </div>
                                     </div>
-                                    <input
-                                        id="logo-upload"
-                                        type="file"
-                                        accept="image/*"
-                                        style={{ display: 'none' }}
-                                        onChange={handleLogoUpload}
-                                    />
-                                    <span className="input-hint">Gunakan link gambar atau upload langsung ke Cloudinary.</span>
                                 </div>
 
                                 <div className="input-group">
