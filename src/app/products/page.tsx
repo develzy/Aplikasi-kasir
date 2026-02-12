@@ -134,7 +134,7 @@ export default function ProductsPage() {
     };
 
     return (
-        <div className="container" style={{ paddingTop: '2rem' }}>
+        <div className="container fade-in" style={{ paddingTop: '2rem' }}>
             <header className="dashboard-header" style={{ marginBottom: '2.5rem' }}>
                 <div>
                     <h1 className="section-title">Manajemen Produk</h1>

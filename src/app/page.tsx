@@ -91,7 +91,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="container" style={{ paddingTop: '2rem' }}>
+    <div className="container fade-in" style={{ paddingTop: '2rem' }}>
       <header className="dashboard-header">
         <div>
           <h1 className="section-title">

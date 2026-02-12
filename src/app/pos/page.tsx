@@ -170,7 +170,7 @@ export default function POSPage() {
     });
 
     return (
-        <div className="pos-layout" style={{ display: 'grid', gap: '2rem', height: 'calc(100vh - 4rem)' }}>
+        <div className="pos-layout fade-in" style={{ display: 'grid', gap: '2rem', height: 'calc(100vh - 4rem)' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <header className="pos-header">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
