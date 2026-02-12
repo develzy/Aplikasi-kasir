@@ -48,19 +48,28 @@ export default function ProductsPage() {
         }
     };
 
-    const fetchProducts = async () => {
-        setLoading(true);
+    const fetchProducts = async (silent = false) => {
+        if (!silent) setLoading(true);
         try {
             const res = await fetch('/api/products');
             const data = await res.json() as Product[];
             setProducts(data);
         } catch (err) {
             console.error("Failed to fetch products:", err);
-            showToast("Gagal memuat produk", "error");
+            if (!silent) showToast("Gagal memuat produk", "error");
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchProducts();
+        fetchCategories();
+
+        // Poll every 10s
+        const interval = setInterval(() => fetchProducts(true), 10000);
+        return () => clearInterval(interval);
+    }, []);
 
     const openAddModal = () => {
         setEditingProduct(null);

@@ -5,6 +5,8 @@ import { Filter, Download, ArrowUpRight, ArrowDownLeft, MoreVertical, Search, Pl
 import { Skeleton } from "@/components/Skeleton";
 import { exportToCSV } from "@/utils/export";
 
+import { useToast } from "@/context/ToastContext";
+
 interface Transaction {
     id: number;
     type: 'income' | 'expense';
@@ -16,21 +18,72 @@ interface Transaction {
 }
 
 export default function TransactionsPage() {
+    const { showToast } = useToast();
     const [searchTerm, setSearchTerm] = useState("");
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [formData, setFormData] = useState({
+        type: 'expense',
+        category: '',
+        amount: 0,
+        note: ''
+    });
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            // Add current date
+            const payload = {
+                ...formData,
+                date: new Date().toLocaleString('id-ID'),
+                status: 'Selesai'
+            };
+
+            const res = await fetch('/api/transactions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const json = await res.json();
+                // If API returns success: true, we might need to refetch or construct the object
+                // But usually POST returns the created object or we optimistically add it.
+                // Let's assume we re-fetch to be safe or append if API returns id.
+                // To keep it simple and realtime:
+                fetchTransactions();
+                setIsModalOpen(false);
+                setFormData({ type: 'expense', category: '', amount: 0, note: '' });
+                showToast("Transaksi berhasil ditambahkan");
+            } else {
+                showToast("Gagal menyimpan transaksi", "error");
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("Terjadi kesalahan", "error");
+        }
+    };
+
+    const fetchTransactions = (silent = false) => {
+        if (!silent) setLoading(true);
         fetch('/api/transactions')
             .then(res => res.json())
             .then((data) => {
                 setTransactions(data as Transaction[]);
-                setLoading(false);
+                if (!silent) setLoading(false);
             })
             .catch(err => {
                 console.error("Failed to fetch transactions:", err);
-                setLoading(false);
+                if (!silent) setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        fetchTransactions();
+        const interval = setInterval(() => fetchTransactions(true), 10000);
+        return () => clearInterval(interval);
     }, []);
 
     const filteredTransactions = transactions.filter(tx =>
@@ -54,12 +107,91 @@ export default function TransactionsPage() {
                         <Download size={18} />
                         <span>Ekspor CSV</span>
                     </button>
-                    <button className="btn-primary">
+                    <button className="btn-primary" onClick={() => setIsModalOpen(true)}>
                         <Plus size={18} />
                         <span>Tambah Transaksi</span>
                     </button>
                 </div>
             </header>
+
+            {/* Modal Tambah Transaksi */}
+            {isModalOpen && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div className="card" style={{ width: '400px', padding: '2rem', background: '#1e293b' }}>
+                        <h2 style={{ marginBottom: '1.5rem' }}>Catat Transaksi</h2>
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Jenis</label>
+                                <div style={{ display: 'flex', gap: '1rem' }}>
+                                    <label style={{ flex: 1, cursor: 'pointer', background: formData.type === 'income' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '8px', textAlign: 'center', border: formData.type === 'income' ? '1px solid var(--success)' : '1px solid transparent' }}>
+                                        <input type="radio" name="type" value="income" checked={formData.type === 'income'} onChange={() => setFormData({ ...formData, type: 'income' })} style={{ display: 'none' }} />
+                                        <span style={{ color: formData.type === 'income' ? 'var(--success)' : '#fff', fontWeight: 'bold' }}>Pemasukan</span>
+                                    </label>
+                                    <label style={{ flex: 1, cursor: 'pointer', background: formData.type === 'expense' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.05)', padding: '0.75rem', borderRadius: '8px', textAlign: 'center', border: formData.type === 'expense' ? '1px solid var(--danger)' : '1px solid transparent' }}>
+                                        <input type="radio" name="type" value="expense" checked={formData.type === 'expense'} onChange={() => setFormData({ ...formData, type: 'expense' })} style={{ display: 'none' }} />
+                                        <span style={{ color: formData.type === 'expense' ? 'var(--danger)' : '#fff', fontWeight: 'bold' }}>Pengeluaran</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Kategori</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="Contoh: Operasional, Gaji, dll."
+                                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)', borderRadius: '6px', color: '#fff' }}
+                                    value={formData.category}
+                                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Jumlah (Rp)</label>
+                                <input
+                                    type="number"
+                                    required
+                                    placeholder="0"
+                                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)', borderRadius: '6px', color: '#fff' }}
+                                    value={formData.amount}
+                                    onChange={(e) => setFormData({ ...formData, amount: parseInt(e.target.value) || 0 })}
+                                />
+                            </div>
+
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Catatan</label>
+                                <textarea
+                                    placeholder="Opsional"
+                                    style={{ width: '100%', padding: '0.75rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)', borderRadius: '6px', color: '#fff' }}
+                                    value={formData.note}
+                                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                <button
+                                    type="button"
+                                    style={{ flex: 1, padding: '0.75rem', background: 'transparent', border: '1px solid var(--card-border)', color: '#fff', borderRadius: '6px', cursor: 'pointer' }}
+                                    onClick={() => setIsModalOpen(false)}
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="btn-primary"
+                                    style={{ flex: 1, justifyContent: 'center' }}
+                                >
+                                    Simpan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             <div className="card" style={{ marginBottom: '2rem', padding: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

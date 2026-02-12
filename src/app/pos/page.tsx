@@ -43,32 +43,44 @@ export default function POSPage() {
     const { showToast } = useToast();
 
     useEffect(() => {
-        // Fetch products
-        fetch('/api/products')
-            .then(res => res.json())
-            .then(data => {
-                setProducts(data as Product[]);
-            });
+        const fetchProducts = () => {
+            fetch('/api/products')
+                .then(res => res.json())
+                .then(data => {
+                    setProducts(data as Product[]);
+                });
+        };
 
-        // Fetch categories
-        fetch('/api/categories')
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setCategories(data);
-                } else {
-                    setCategories([]);
-                }
-            })
-            .catch(() => setCategories([]));
+        const fetchCategories = () => {
+            fetch('/api/categories')
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setCategories(data);
+                    } else {
+                        setCategories([]);
+                    }
+                })
+                .catch(() => setCategories([]));
+        };
 
-        // Fetch settings
-        fetch('/api/settings')
-            .then(res => res.json())
-            .then(data => {
-                setStoreSettings(data);
-                setLoading(false);
-            });
+        const fetchSettings = () => {
+            fetch('/api/settings')
+                .then(res => res.json())
+                .then(data => {
+                    setStoreSettings(data);
+                    setLoading(false);
+                });
+        };
+
+        // Initial fetch
+        fetchProducts();
+        fetchCategories();
+        fetchSettings();
+
+        // Poll every 10 seconds for products (realtime stock updates)
+        const interval = setInterval(fetchProducts, 10000);
+        return () => clearInterval(interval);
     }, []);
 
     const addToCart = (product: Product) => {

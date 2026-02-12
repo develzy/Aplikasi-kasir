@@ -24,17 +24,24 @@ export default function ReportsPage() {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const fetchData = (silent = false) => {
+        if (!silent) setLoading(true);
         fetch('/api/reports')
             .then(res => res.json())
             .then(json => {
                 setData(json);
-                setLoading(false);
+                if (!silent) setLoading(false);
             })
             .catch(err => {
                 console.error(err);
-                setLoading(false);
+                if (!silent) setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        fetchData();
+        const interval = setInterval(() => fetchData(true), 10000);
+        return () => clearInterval(interval);
     }, []);
 
     // if (loading) return <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Memuat laporan...</div>;
