@@ -41,6 +41,7 @@ interface Stats {
 import { Skeleton, CardSkeleton } from "@/components/Skeleton";
 
 export default function Dashboard() {
+  // Main dashboard component
   const [stats, setStats] = useState<Stats>({ balance: 0, income: 0, expense: 0, transactionCount: 0 });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
