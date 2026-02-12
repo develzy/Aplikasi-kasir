@@ -15,6 +15,35 @@ export default function OnboardingPage() {
     const [uploading, setUploading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
+    // Helper untuk resize gambar client-side agar hemat database storage
+    const resizeImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 400; // Resize ke max width 400px
+                    const scaleSize = MAX_WIDTH / img.width;
+                    const width = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
+                    const height = (img.width > MAX_WIDTH) ? img.height * scaleSize : img.height;
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+
+                    // Convert ke WebP quality 0.8 untuk ukuran kecil
+                    const dataUrl = canvas.toDataURL('image/webp', 0.8);
+                    resolve(dataUrl);
+                };
+            };
+            reader.onerror = error => reject(error);
+        });
+    };
+
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -31,14 +60,15 @@ export default function OnboardingPage() {
         }
 
         setUploading(true);
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', file);
-        formDataUpload.append('username', formData.storeName || 'default');
 
         try {
+            // Resize gambar sebelum upload
+            const base64Image = await resizeImage(file);
+
             const res = await fetch('/api/upload-logo', {
                 method: 'POST',
-                body: formDataUpload
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: base64Image })
             });
 
             const data = await res.json() as { success?: boolean; logoUrl?: string; error?: string };
@@ -51,7 +81,7 @@ export default function OnboardingPage() {
             }
         } catch (err) {
             console.error(err);
-            showToast("Terjadi kesalahan upload", "error");
+            showToast("Terjadi kesalahan sistem", "error");
         } finally {
             setUploading(false);
         }
