@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit } from "next/font/google";
+import { Outfit, Inter } from "next/font/google";
 import "./globals.css";
 import AppWrapper from "@/components/AppWrapper";
 import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
@@ -7,10 +7,17 @@ import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0b",
+  themeColor: "#020617", // Updated to match new background
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -20,7 +27,6 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "KasUMKM | Pencatatan Keuangan Modern",
   description: "Aplikasi pencatatan keuangan dan kasir modern untuk UMKM",
-
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -34,8 +40,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={outfit.className}>
+    <html lang="id">
+      <body className={`${inter.variable} ${outfit.variable} font-sans`}>
         <ServiceWorkerRegistration />
         <AppWrapper>{children}</AppWrapper>
       </body>

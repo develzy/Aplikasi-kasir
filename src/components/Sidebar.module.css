@@ -4,7 +4,8 @@
     position: fixed;
     left: 0;
     top: 0;
-    background: #0f172a;
+    background: rgba(2, 6, 23, 0.8);
+    backdrop-filter: blur(20px);
     border-right: 1px solid var(--card-border);
     display: flex;
     flex-direction: column;
