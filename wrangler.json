@@ -8,7 +8,7 @@
         {
             "binding": "DB",
             "database_name": "kaszy-db",
-            "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+            "database_id": "ffd48dbb-1fc4-4575-941b-bf0f8239f65f"
         }
     ],
     "vars": {
