@@ -32,6 +32,9 @@ export const settings = sqliteTable("settings", {
     phone: text("phone").notNull().default("0812-3456-7890"),
     currency: text("currency").notNull().default("IDR"),
     logoUrl: text("logo_url"),
+    notificationOrder: integer("notif_order", { mode: "boolean" }).default(true),
+    notificationStock: integer("notif_stock", { mode: "boolean" }).default(true),
+    notificationWeekly: integer("notif_weekly", { mode: "boolean" }).default(false),
 });
 
 export const categories = sqliteTable("categories", {

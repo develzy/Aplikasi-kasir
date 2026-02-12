@@ -56,6 +56,11 @@ export default function SettingsPage() {
                     currency: json.currency || "IDR",
                     logoUrl: json.logoUrl || ""
                 });
+                setNotifications({
+                    orderEmail: json.notificationOrder ?? true,
+                    stockAlert: json.notificationStock ?? true,
+                    weeklyReport: json.notificationWeekly ?? false
+                });
             } catch (err) {
                 console.error(err);
             }
@@ -367,7 +372,23 @@ export default function SettingsPage() {
                                 </div>
                             </div>
                             <div className="form-footer">
-                                <button className="btn-primary" onClick={() => showToast("Preferensi notifikasi disimpan")}>
+                                <button className="btn-primary" onClick={async () => {
+                                    try {
+                                        await fetch('/api/settings', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                                notificationOrder: notifications.orderEmail,
+                                                notificationStock: notifications.stockAlert,
+                                                notificationWeekly: notifications.weeklyReport,
+                                                ...formData // Include form data to prevent overwriting with defaults
+                                            })
+                                        });
+                                        showToast("Preferensi notifikasi disimpan");
+                                    } catch (error) {
+                                        showToast("Gagal menyimpan preferensi", "error");
+                                    }
+                                }}>
                                     <Save size={18} />
                                     <span>Simpan Preferensi</span>
                                 </button>
@@ -388,7 +409,21 @@ export default function SettingsPage() {
                                 <button
                                     className="btn-primary"
                                     style={{ background: 'var(--danger)', borderColor: 'var(--danger)' }}
-                                    onClick={() => confirm("Hapus SEMUA riwayat transaksi? Data tidak bisa dikembalikan.") && showToast("Data dibersihkan (Demo)")}
+                                    onClick={async () => {
+                                        if (confirm("Hapus SEMUA riwayat transaksi? Data tidak bisa dikembalikan.")) {
+                                            try {
+                                                const res = await fetch('/api/reset-data', { method: 'DELETE' });
+                                                if (res.ok) {
+                                                    showToast("Riwayat transaksi berhasil dihapus");
+                                                } else {
+                                                    showToast("Gagal menghapus data", "error");
+                                                }
+                                            } catch (err) {
+                                                console.error(err);
+                                                showToast("Terjadi kesalahan sistem", "error");
+                                            }
+                                        }
+                                    }}
                                 >
                                     Bersihkan Riwayat
                                 </button>
