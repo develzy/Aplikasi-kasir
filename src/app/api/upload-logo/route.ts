@@ -1,9 +1,15 @@
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'node:crypto'; // Use standard Node crypto
 
-// Allow Node.js runtime features (nodejs_compat is enabled in wrangler.toml)
-// export const runtime = 'edge'; // REMOVED to allow node:crypto
+export const runtime = 'edge';
+
+async function sha1(str: string) {
+    const buffer = new TextEncoder().encode(str);
+    const hash = await crypto.subtle.digest('SHA-1', buffer);
+    return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -33,10 +39,8 @@ export async function POST(request: NextRequest) {
         // Simplified: Only sign the timestamp to avoid sorting/encoding issues with folder paths
         const paramsToSign = `timestamp=${timestamp}`;
 
-        // Standard Node.js SHA1 Hash
-        const signature = crypto.createHash('sha1')
-            .update(paramsToSign + API_SECRET)
-            .digest('hex');
+        // Web Crypto SHA1 Hash
+        const signature = await sha1(paramsToSign + API_SECRET);
 
         // Create form data for Cloudinary
         const cloudinaryFormData = new FormData();
