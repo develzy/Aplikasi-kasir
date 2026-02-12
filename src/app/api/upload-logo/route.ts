@@ -1,81 +1,52 @@
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import { NextRequest, NextResponse } from 'next/server';
+import { getDb } from '@/db';
+import { settings } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 
 export const runtime = 'edge';
 
-async function sha1(str: string) {
-    const buffer = new TextEncoder().encode(str);
-    const hash = await crypto.subtle.digest('SHA-1', buffer);
-    return Array.from(new Uint8Array(hash))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-}
-
 export async function POST(request: NextRequest) {
     try {
-        const formData = await request.formData();
-        const file = formData.get('file') as File;
+        const data = await request.json() as { image: string };
+        const base64Image = data.image;
 
-        // Removed dynamic folder for now to simplify signature and ensure success
-        // const username = formData.get('username') as string || 'default';
-
-        if (!file) {
-            return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+        if (!base64Image) {
+            return NextResponse.json({ error: 'No image data provided' }, { status: 400 });
         }
 
-        const env = getRequestContext().env;
-        const CLOUD_NAME = env.CLOUDINARY_CLOUD_NAME;
-        const API_KEY = env.CLOUDINARY_API_KEY;
-        const API_SECRET = env.CLOUDINARY_API_SECRET;
-
-        if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
-            console.error("Missing Cloudinary Config");
-            return NextResponse.json({ error: 'Cloudinary config missing' }, { status: 500 });
+        // Validate basic base64 format (simple check)
+        if (!base64Image.startsWith('data:image/')) {
+            return NextResponse.json({ error: 'Invalid image format' }, { status: 400 });
         }
 
-        // Prepare upload parameters
-        const timestamp = Math.round((new Date()).getTime() / 1000).toString();
+        const db = getDb(getRequestContext().env.DB);
 
-        // Simplified: Only sign the timestamp to avoid sorting/encoding issues with folder paths
-        const paramsToSign = `timestamp=${timestamp}`;
+        // Update settings directly
+        // Assuming id=1 for single store settings
+        const existing = await db.select().from(settings).where(eq(settings.id, 1)).get();
 
-        // Web Crypto SHA1 Hash
-        const signature = await sha1(paramsToSign + API_SECRET);
-
-        // Create form data for Cloudinary
-        const cloudinaryFormData = new FormData();
-        cloudinaryFormData.append('file', file);
-        cloudinaryFormData.append('api_key', API_KEY);
-        cloudinaryFormData.append('timestamp', timestamp);
-        // cloudinaryFormData.append('folder', ...); // Skip folder for now
-        cloudinaryFormData.append('signature', signature);
-
-        // Upload to Cloudinary
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-            method: 'POST',
-            body: cloudinaryFormData
-        });
-
-        const data = await response.json() as any;
-
-        if (!response.ok) {
-            console.error('Cloudinary error response:', data);
-            return NextResponse.json({
-                error: data.error?.message || 'Upload failed',
-                debug: { timestamp, signature } // Debug info just in case
-            }, { status: 500 });
+        if (existing) {
+            await db.update(settings)
+                .set({ logoUrl: base64Image })
+                .where(eq(settings.id, 1));
+        } else {
+            await db.insert(settings).values({
+                id: 1,
+                logoUrl: base64Image
+            });
         }
 
         return NextResponse.json({
             success: true,
-            logoUrl: data.secure_url,
-            message: 'Logo berhasil diunggah'
+            logoUrl: base64Image,
+            message: 'Logo berhasil disimpan ke database'
         });
 
     } catch (error: any) {
-        console.error('Upload error:', error);
+        console.error('Logo save error:', error);
         return NextResponse.json(
-            { error: error.message || 'Failed to upload logo' },
+            { error: error.message || 'Failed to save logo' },
             { status: 500 }
         );
     }

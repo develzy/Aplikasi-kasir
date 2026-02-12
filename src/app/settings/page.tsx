@@ -84,11 +84,40 @@ export default function SettingsPage() {
         Promise.all([loadSettings(), loadCategories()]).finally(() => setLoading(false));
     }, []);
 
+    // Helper untuk resize gambar client-side agar hemat database storage
+    const resizeImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 400; // Resize ke max width 400px
+                    const scaleSize = MAX_WIDTH / img.width;
+                    const width = (img.width > MAX_WIDTH) ? MAX_WIDTH : img.width;
+                    const height = (img.width > MAX_WIDTH) ? img.height * scaleSize : img.height;
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, width, height);
+
+                    // Convert ke WebP quality 0.8 untuk ukuran kecil
+                    const dataUrl = canvas.toDataURL('image/webp', 0.8);
+                    resolve(dataUrl);
+                };
+            };
+            reader.onerror = error => reject(error);
+        });
+    };
+
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validasi ukuran file (max 5MB)
+        // Validasi ukuran file awal (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
             showToast("Ukuran file maksimal 5MB", "error");
             return;
@@ -102,27 +131,29 @@ export default function SettingsPage() {
         }
 
         setUploading(true);
-        const formDataUpload = new FormData();
-        formDataUpload.append('file', file);
-        formDataUpload.append('username', formData.storeName || 'default'); // Gunakan nama toko sebagai username
 
         try {
+            // Resize gambar sebelum upload
+            const base64Image = await resizeImage(file);
+
+            // Kirim sebagai JSON Base64
             const res = await fetch('/api/upload-logo', {
                 method: 'POST',
-                body: formDataUpload
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: base64Image })
             });
 
             const data = await res.json() as { success?: boolean; logoUrl?: string; error?: string };
 
             if (data.success && data.logoUrl) {
                 setFormData(prev => ({ ...prev, logoUrl: data.logoUrl! }));
-                showToast("Logo berhasil diunggah");
+                showToast("Logo berhasil disimpan");
             } else {
-                showToast(data.error || "Gagal mengunggah logo", "error");
+                showToast(data.error || "Gagal menyimpan logo", "error");
             }
         } catch (err) {
             console.error(err);
-            showToast("Terjadi kesalahan upload", "error");
+            showToast("Terjadi kesalahan sistem", "error");
         } finally {
             setUploading(false);
         }
